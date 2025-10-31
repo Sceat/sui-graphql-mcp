@@ -1,7 +1,7 @@
 {
   "name": "sui-graphql-mcp",
-  "version": "1.0.0",
-  "description": "MCP server for Sui GraphQL API",
+  "version": "2.0.0",
+  "description": "MCP server for Sui blockchain GraphQL API - enables Claude to query Sui transactions, objects, balances, and more",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -9,17 +9,22 @@
   },
   "scripts": {
     "build": "tsc",
-    "watch": "tsc --watch",
-    "start": "node dist/index.js"
+    "prepare": "npm run build"
   },
   "keywords": [
     "mcp",
     "sui",
     "graphql",
-    "blockchain"
+    "blockchain",
+    "model-context-protocol",
+    "claude"
   ],
-  "author": "",
+  "author": "Sceat",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Sceat/sui-graphql-mcp.git"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
     "graphql": "^16.9.0",
