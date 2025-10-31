@@ -7,7 +7,7 @@ Query the Sui blockchain directly from Claude using GraphQL.
 One command - that's it:
 
 ```bash
-claude mcp add sui-graphql npx -y github:Sceat/sui-graphql-mcp
+claude mcp add sui-graphql -- npx -y github:Sceat/sui-graphql-mcp
 ```
 
 **No npm install, no build step, pure JavaScript!**
@@ -39,10 +39,18 @@ Get the complete GraphQL schema so Claude understands all available data and fie
 
 By default, connects to **Sui Testnet**.
 
-To use **Mainnet**, set the environment variable when adding:
+To use **Mainnet**, manually edit your config (`~/.claude.json`) after installation:
 
-```bash
-claude mcp add sui-graphql npx -y github:Sceat/sui-graphql-mcp --env SUI_GRAPHQL_URL=https://graphql.mainnet.sui.io/graphql
+```json
+{
+  "mcpServers": {
+    "sui-graphql": {
+      "env": {
+        "SUI_GRAPHQL_URL": "https://graphql.mainnet.sui.io/graphql"
+      }
+    }
+  }
+}
 ```
 
 Available networks:
