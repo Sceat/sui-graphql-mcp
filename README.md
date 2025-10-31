@@ -4,11 +4,13 @@ Query the Sui blockchain directly from Claude using GraphQL.
 
 ## Installation
 
+One command - that's it:
+
 ```bash
-claude mcp add sui-graphql https://github.com/Sceat/sui-graphql-mcp.git
+claude mcp add sui-graphql npx -y github:Sceat/sui-graphql-mcp
 ```
 
-That's it! Claude Code will automatically install and configure the server.
+**No npm install, no build step, pure JavaScript!**
 
 ## Usage
 
@@ -35,15 +37,17 @@ Get the complete GraphQL schema so Claude understands all available data and fie
 
 ## Network Configuration
 
-By default, connects to **Sui Testnet**. To use **Mainnet**:
+By default, connects to **Sui Testnet**.
+
+To use **Mainnet**, set the environment variable when adding:
 
 ```bash
-claude mcp update sui-graphql --env SUI_GRAPHQL_URL=https://graphql.mainnet.sui.io/graphql
+claude mcp add sui-graphql npx -y github:Sceat/sui-graphql-mcp --env SUI_GRAPHQL_URL=https://graphql.mainnet.sui.io/graphql
 ```
 
 Available networks:
-- Testnet: `https://graphql.testnet.sui.io/graphql` (default)
-- Mainnet: `https://graphql.mainnet.sui.io/graphql`
+- **Testnet**: `https://graphql.testnet.sui.io/graphql` (default)
+- **Mainnet**: `https://graphql.mainnet.sui.io/graphql`
 
 ## Example Queries
 
@@ -57,25 +61,25 @@ Claude can query:
 - **Coins**: Metadata, balances, supply
 - **Types**: Move type structures and layouts
 
-## Manual Installation
+## Local Development
 
-If you prefer manual setup:
+If you want to develop or modify the server:
 
 ```bash
 git clone https://github.com/Sceat/sui-graphql-mcp.git
 cd sui-graphql-mcp
 npm install
-npm run build
+chmod +x index.js
 ```
 
-Then add to your Claude Code config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+Then add to your Claude Code config:
 
 ```json
 {
   "mcpServers": {
     "sui-graphql": {
       "command": "node",
-      "args": ["/path/to/sui-graphql-mcp/dist/index.js"],
+      "args": ["/path/to/sui-graphql-mcp/index.js"],
       "env": {
         "SUI_GRAPHQL_URL": "https://graphql.testnet.sui.io/graphql"
       }
