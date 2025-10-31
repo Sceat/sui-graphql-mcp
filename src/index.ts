@@ -80,15 +80,15 @@ Returns full schema introspection including:
 - Query operations and their arguments
 - Object types and fields
 - Input types for filters
-- Field descriptions
 
-Use this to explore what data is available and construct precise queries.`,
+Use this to explore what data is available and construct precise queries.
+Set includeDescriptions to true for detailed field documentation (increases response size significantly).`,
     inputSchema: {
       type: "object",
       properties: {
         includeDescriptions: {
           type: "boolean",
-          description: "Include field descriptions (default: true)",
+          description: "Include field descriptions (default: false). Warning: enabling this significantly increases response size.",
         },
       },
     },
@@ -128,13 +128,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "sui_get_schema": {
-        if (cachedSchema) {
+        const includeDesc = args?.includeDescriptions === true;
+
+        if (cachedSchema && !includeDesc) {
           return {
             content: [{ type: "text", text: JSON.stringify(cachedSchema, null, 2) }],
           };
         }
 
-        const includeDesc = args?.includeDescriptions !== false;
+        // Simplified schema query - just query fields without full type introspection
         const schemaQuery = `
           query GetSchema {
             __schema {
@@ -150,59 +152,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                     type {
                       name
                       kind
-                      ofType {
-                        name
-                        kind
-                        ofType {
-                          name
-                          kind
-                        }
-                      }
                     }
                   }
                   type {
                     name
                     kind
-                    ofType {
-                      name
-                      kind
-                    }
-                  }
-                }
-              }
-              types {
-                name
-                ${includeDesc ? "description" : ""}
-                kind
-                fields {
-                  name
-                  ${includeDesc ? "description" : ""}
-                  args {
-                    name
-                    type {
-                      name
-                      kind
-                    }
-                  }
-                  type {
-                    name
-                    kind
-                    ofType {
-                      name
-                      kind
-                    }
-                  }
-                }
-                inputFields {
-                  name
-                  ${includeDesc ? "description" : ""}
-                  type {
-                    name
-                    kind
-                    ofType {
-                      name
-                      kind
-                    }
                   }
                 }
               }
@@ -210,8 +164,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           }
         `;
 
-        const schema = await client.request(schemaQuery);
-        cachedSchema = schema;
+        const schema: any = await client.request(schemaQuery);
+
+        // Cache only the non-descriptive version
+        if (!includeDesc) {
+          cachedSchema = schema;
+        }
+
         return {
           content: [{ type: "text", text: JSON.stringify(schema, null, 2) }],
         };
