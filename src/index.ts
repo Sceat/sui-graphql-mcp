@@ -20,13 +20,19 @@ const client = new GraphQLClient(SUI_GRAPHQL_URL);
 // Cache schema for performance
 let cachedSchema: any = null;
 
+// MCP token limits (Claude Code has a 25,000 token limit for tool responses)
+const MAX_RESPONSE_CHARS = 80000; // ~20,000 tokens (4 chars per token estimate)
+const TRUNCATION_WARNING = "\n\n[Response truncated due to size limits. Use pagination (first/last), filters, or request fewer fields to get complete results.]";
+
 // Define tools
 const TOOLS: Tool[] = [
   {
     name: "sui_graphql_query",
     description: `Execute GraphQL queries against the Sui ${NETWORK} blockchain.
 
-This is the primary tool for querying Sui blockchain data. The Sui GraphQL API provides access to:
+**WORKFLOW:**
+1. **FIRST TIME ONLY**: Call \`sui_get_schema\` to understand available queries and fields
+2. **THEN**: Construct and execute your GraphQL queries based on the schema
 
 **Core Queries:**
 - \`address(address: String!)\` - Get account info, balances, objects, transactions
@@ -39,7 +45,12 @@ This is the primary tool for querying Sui blockchain data. The Sui GraphQL API p
 - \`transactions(filter: TransactionFilter)\` - Query transactions
 - \`chainIdentifier\` - Get network chain ID
 
-**Pagination:** Most list queries support \`first\`, \`after\`, \`last\`, \`before\` for cursor-based pagination.
+**CRITICAL - Response Size Limits:**
+Responses are limited to ~20,000 tokens. To avoid truncation:
+- **ALWAYS use pagination** for list queries: \`first: 5-10\` (start small!)
+- **Request only needed fields** - avoid large nested objects like \`contents\` unless necessary
+- **Use filters** to narrow results
+- Large responses will be automatically truncated with a warning
 
 **Examples:**
 \`\`\`graphql
@@ -49,14 +60,12 @@ This is the primary tool for querying Sui blockchain data. The Sui GraphQL API p
 # Get address balance
 { address(address: "0x5") { balance(coinType: "0x2::sui::SUI") { totalBalance } } }
 
-# Query recent transactions
+# Query recent transactions (ALWAYS use first/last limits!)
 { transactions(first: 5) { nodes { digest sender { address } } } }
 
-# Get object
-{ object(address: "0x5") { version contents { json } } }
-\`\`\`
-
-Use \`sui_get_schema\` to explore all available fields and types.`,
+# Get object (be careful with contents field - can be large!)
+{ object(address: "0x5") { version digest } }
+\`\`\``,
     inputSchema: {
       type: "object",
       properties: {
@@ -74,15 +83,18 @@ Use \`sui_get_schema\` to explore all available fields and types.`,
   },
   {
     name: "sui_get_schema",
-    description: `Get the complete Sui GraphQL schema to understand all available queries and types.
+    description: `Get the Sui GraphQL schema to understand all available queries and their arguments.
 
-Returns full schema introspection including:
-- Query operations and their arguments
-- Object types and fields
-- Input types for filters
+**When to use:**
+- **First time querying** - Call this BEFORE making any queries to understand available fields
+- When you need to know what arguments a query accepts
+- When exploring new query types
 
-Use this to explore what data is available and construct precise queries.
-Set includeDescriptions to true for detailed field documentation (increases response size significantly).`,
+Returns schema introspection including:
+- All query operations and their arguments
+- Argument types and whether they're required
+
+**Note:** Set includeDescriptions to true for detailed field documentation (significantly increases response size).`,
     inputSchema: {
       type: "object",
       properties: {
@@ -108,6 +120,20 @@ const server = new Server(
   }
 );
 
+// Helper function to format and truncate responses
+function formatResponse(data: any): string {
+  // Use compact JSON (no indentation) to save tokens
+  let response = JSON.stringify(data);
+
+  // Check if response exceeds limit
+  if (response.length > MAX_RESPONSE_CHARS) {
+    // Truncate and add warning
+    response = response.substring(0, MAX_RESPONSE_CHARS) + TRUNCATION_WARNING;
+  }
+
+  return response;
+}
+
 // List tools handler
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return { tools: TOOLS };
@@ -123,7 +149,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const { query, variables } = args as { query: string; variables?: Record<string, unknown> };
         const data = await client.request(query, variables);
         return {
-          content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+          content: [{ type: "text", text: formatResponse(data) }],
         };
       }
 
@@ -132,7 +158,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
         if (cachedSchema && !includeDesc) {
           return {
-            content: [{ type: "text", text: JSON.stringify(cachedSchema, null, 2) }],
+            content: [{ type: "text", text: formatResponse(cachedSchema) }],
           };
         }
 
@@ -172,7 +198,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
 
         return {
-          content: [{ type: "text", text: JSON.stringify(schema, null, 2) }],
+          content: [{ type: "text", text: formatResponse(schema) }],
         };
       }
 
