@@ -7,7 +7,7 @@ import { GraphQLClient } from "graphql-request";
 
 // Configuration
 const SUI_GRAPHQL_URL = process.env.SUI_GRAPHQL_URL || "https://graphql.testnet.sui.io/graphql";
-const NETWORK = SUI_GRAPHQL_URL.includes('mainnet') ? 'Mainnet' : 'Testnet';
+const NETWORK = SUI_GRAPHQL_URL.includes('mainnet') ? 'Mainnet' : SUI_GRAPHQL_URL.includes('devnet') ? 'Devnet' : 'Testnet';
 const MAX_RESPONSE_CHARS = 80000; // ~20,000 tokens (4 chars per token)
 const TRUNCATION_WARNING = "\n\n[Response truncated due to size limits. Use pagination (first/last), filters, or request fewer fields to get complete results.]";
 
@@ -35,6 +35,47 @@ const TOOLS = [
 - \`events(filter: EventFilter)\` - Query emitted events
 - \`transactions(filter: TransactionFilter)\` - Query transactions
 - \`chainIdentifier\` - Get network chain ID
+- \`simulateTransaction(transaction: JSON!)\` - Dry-run a transaction without executing it
+
+**Transaction Simulation:**
+The \`simulateTransaction\` query accepts a JSON transaction matching the [Sui gRPC API schema](https://docs.sui.io/references/fullnode-protocol#sui-rpc-v2-Transaction).
+The JSON format allows for partial transaction specification where certain fields can be automatically resolved by the server.
+
+Alternatively, for already serialized transactions, you can pass BCS-encoded data:
+\`{"bcs": {"value": "<base64>"}}\`
+
+Unlike \`executeTransaction\`, this does not require signatures since the transaction is not committed to the blockchain. This allows for previewing transaction effects, estimating gas costs, and testing transaction logic without spending gas or requiring valid signatures.
+
+Example simulation query:
+\`\`\`graphql
+query SimulateTransaction($tx: JSON!) {
+  simulateTransaction(transaction: $tx) {
+    effects {
+      status
+      gasEffects {
+        gasSummary {
+          computationCost
+          storageCost
+          storageRebate
+          nonRefundableStorageFee
+        }
+      }
+    }
+    error
+  }
+}
+\`\`\`
+
+**Transaction Execution:**
+Use the \`executeTransaction\` mutation for on-chain execution. This requires:
+- \`transactionDataBcs\`: Serialized unsigned transaction data (Base64-encoded BCS)
+- \`signatures\`: Array of cryptographic signatures
+
+Transaction data can be generated using Sui CLI:
+\`sui client call --serialize-unsigned-transaction\`
+
+Signatures are generated using:
+\`sui keytool sign --data <tx-data>\`
 
 **CRITICAL - Response Size Limits:**
 Responses are limited to ~20,000 tokens. To avoid truncation:

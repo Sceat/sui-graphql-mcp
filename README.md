@@ -39,7 +39,7 @@ Get the complete GraphQL schema so Claude understands all available data and fie
 
 By default, connects to **Sui Testnet**.
 
-To use **Mainnet**, manually edit your config (`~/.claude.json`) after installation:
+To use **Mainnet** or **Devnet**, manually edit your config (`~/.claude.json`) after installation:
 
 ```json
 {
@@ -56,6 +56,7 @@ To use **Mainnet**, manually edit your config (`~/.claude.json`) after installat
 Available networks:
 - **Testnet**: `https://graphql.testnet.sui.io/graphql` (default)
 - **Mainnet**: `https://graphql.mainnet.sui.io/graphql`
+- **Devnet**: `https://graphql.devnet.sui.io/graphql`
 
 ## Example Queries
 
@@ -68,6 +69,19 @@ Claude can query:
 - **Events**: Query emitted events with filters
 - **Coins**: Metadata, balances, supply
 - **Types**: Move type structures and layouts
+- **Transaction Simulation**: Dry-run transactions without executing them on-chain
+
+### Transaction Simulation
+
+The server supports transaction dry-run via the `simulateTransaction` query. This allows you to:
+- Preview transaction effects before execution
+- Estimate gas costs
+- Test transaction logic without spending gas
+- Validate transactions without requiring signatures
+
+The simulation accepts transactions in JSON format following the [Sui gRPC API schema](https://docs.sui.io/references/fullnode-protocol#sui-rpc-v2-Transaction), with support for partial transaction specification where the server can automatically resolve certain fields.
+
+For more details on building and executing transactions, see the [Sui GraphQL RPC documentation](https://docs.sui.io/guides/developer/advanced/graphql-rpc).
 
 ## Local Development
 
